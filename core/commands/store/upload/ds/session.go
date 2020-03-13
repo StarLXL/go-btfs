@@ -217,3 +217,28 @@ func (s *Session) PrepareContractFromShard() ([]*escrowpb.SignedEscrowContract, 
 	}
 	return signedContracts, totalPrice, nil
 }
+
+func (f *Session) GetCompleteShardsNum() (int, int, error) {
+	md, err := f.GetMetadata()
+	var completeNum, errorNum int
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, h := range md.ShardHashes {
+		shard, err := GetShard(f.Ctx, f.ds, f.PeerId, f.Id, h)
+		if err != nil {
+			continue
+		}
+		status, err := shard.Status()
+		if err != nil {
+			continue
+		}
+		if status.Status == "complete" {
+			completeNum++
+		} else if status.Status == "error" {
+			errorNum++
+			return completeNum, errorNum, nil
+		}
+	}
+	return completeNum, errorNum, nil
+}

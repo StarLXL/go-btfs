@@ -2,6 +2,7 @@ package upload
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	shardpb "github.com/TRON-US/go-btfs/core/commands/store/upload/pb/shard"
 	"strconv"
@@ -222,6 +223,28 @@ Use status command to check for completion:
 				return err
 			}(i, h)
 		}
+
+		go func(f *ds.Session, ctx context.Context, numShards int) {
+			tick := time.Tick(5 * time.Second)
+			for true {
+				select {
+				case <-tick:
+					completeNum, errorNum, err := f.GetCompleteShardsNum()
+					if err != nil {
+						continue
+					}
+					if completeNum == numShards {
+						f.Submit()
+						return
+					} else if errorNum > 0 {
+						f.Error(errors.New("there are error shards"))
+						return
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}(ss, ss.Ctx, len(shardHashes))
 
 		seRes := &UploadRes{
 			ID: ss.Id,
