@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/TRON-US/go-btfs/core/commands/store/upload"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +73,13 @@ const (
 	bttTotalSupply uint64 = 990_000_000_000
 )
 
+func init() {
+	// workaround import cycle
+	for k, v := range StorageUploadCmd.Subcommands {
+		upload.StorageUploadCmd.Subcommands[k] = v
+	}
+}
+
 var bo = func() *backoff.ExponentialBackOff {
 	bo := backoff.NewExponentialBackOff()
 	bo.InitialInterval = 10 * time.Second
@@ -89,7 +97,7 @@ Storage services include client upload operations, host storage operations,
 host information sync/display operations, and BTT payment-related routines.`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"upload":    storageUploadCmd,
+		"upload":    StorageUploadCmd,
 		"hosts":     storageHostsCmd,
 		"info":      storageInfoCmd,
 		"announce":  storageAnnounceCmd,
@@ -99,7 +107,7 @@ host information sync/display operations, and BTT payment-related routines.`,
 	},
 }
 
-var storageUploadCmd = &cmds.Command{
+var StorageUploadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Store files on BTFS network nodes through BTT payment.",
 		ShortDescription: `
@@ -130,9 +138,6 @@ Use status command to check for completion:
     $ btfs storage upload status <session-id> | jq`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"init":              storageUploadInitCmd,
-		"recvcontract":      storageUploadRecvContractCmd,
-		"status":            storageUploadStatusCmd,
 		"repair":            StorageUploadRepairCmd,
 		"offline":           StorageUploadOfflineCmd,
 		"getcontractbatch":  StorageUploadGetContractBatchCmd,
@@ -675,7 +680,7 @@ func prepareSignedContractsForShard(param *paramsForPrepareContractsForShard, ca
 	halfSignGuardContract, err := guard.SignedContractAndMarshal(guardContractMeta, nil, nil, param.n.PrivateKey, true,
 		ss.RunMode == storage.RepairMode, param.renterPid, param.n.Identity.Pretty())
 	if err != nil {
-		return fmt.Errorf("fail to sign guard contract and marshal: [%v] ", err)
+		return fmt.Errorf("fail to sign grd contract and marshal: [%v] ", err)
 	}
 
 	// Set the output of this function.
@@ -698,7 +703,7 @@ func buildContractsForShard(param *paramsForPrepareContractsForShard,
 		return nil, nil, err
 	}
 
-	// init escrow/guard Contracts
+	// init escrow/grd Contracts
 	_, hostPid, err := ParsePeerParam(candidateHost.Identity)
 	if err != nil {
 		return nil, nil, err
@@ -940,7 +945,7 @@ var storageUploadRecvContractCmd = &cmds.Command{
 		cmds.StringArg("shard-hash", true, false, "Shard the storage node should fetch."),
 		cmds.StringArg("shard-index", true, false, "Index of shard within the encoding scheme."),
 		cmds.StringArg("escrow-contract", true, false, "Signed Escrow contract."),
-		cmds.StringArg("guard-contract", true, false, "Signed Guard contract."),
+		cmds.StringArg("grd-contract", true, false, "Signed Guard contract."),
 	},
 	RunTimeout: 15 * time.Minute,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -1106,7 +1111,7 @@ func payFullToEscrowAndSubmitToGuard(ctx context.Context, n *core.IpfsNode, api 
 		fsStatus, err = PrepAndUploadFileMetaOffSign(ctx, ss, response, payinRes, cfg)
 	}
 	if err != nil {
-		err = fmt.Errorf("failed to send file meta to guard: [%v]", err)
+		err = fmt.Errorf("failed to send file meta to grd: [%v]", err)
 		ss.SendSessionStatusChan(ss.GetCurrentStatus(), false, err)
 		return
 	}
@@ -1123,7 +1128,7 @@ func payFullToEscrowAndSubmitToGuard(ctx context.Context, n *core.IpfsNode, api 
 	}
 	err = guard.SendChallengeQuestions(ctx, cfg, ss.FileHash, qs)
 	if err != nil {
-		err = fmt.Errorf("failed to send challenge questions to guard: [%v]", err)
+		err = fmt.Errorf("failed to send challenge questions to grd: [%v]", err)
 		ss.SendSessionStatusChan(ss.GetCurrentStatus(), false, err)
 		return
 	}
@@ -1148,7 +1153,7 @@ the shard and replies back to client for the next challenge step.`,
 		cmds.StringArg("shard-hash", true, false, "Shard the storage node should fetch."),
 		cmds.StringArg("price", true, false, "Per GiB per day in BTT for storing this shard offered by client."),
 		cmds.StringArg("escrow-contract", true, false, "Client's initial escrow contract data."),
-		cmds.StringArg("guard-contract-meta", true, false, "Client's initial guard contract meta."),
+		cmds.StringArg("grd-contract-meta", true, false, "Client's initial grd contract meta."),
 		cmds.StringArg("storage-length", true, false, "Store file for certain length in days."),
 		cmds.StringArg("shard-size", true, false, "Size of each shard received in bytes."),
 		cmds.StringArg("shard-index", true, false, "Index of shard within the encoding scheme."),
@@ -1301,7 +1306,7 @@ the shard and replies back to client for the next challenge step.`,
 		}
 		ok, err = crypto.Verify(payerPubKey, &guardContractMeta, s)
 		if !ok || err != nil {
-			return fmt.Errorf("can't verify guard contract: %v", err)
+			return fmt.Errorf("can't verify grd contract: %v", err)
 		}
 
 		api, err := cmdenv.GetApi(env, req)

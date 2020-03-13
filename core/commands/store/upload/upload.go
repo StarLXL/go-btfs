@@ -3,8 +3,10 @@ package upload
 import (
 	"context"
 	"fmt"
-	cmds "github.com/TRON-US/go-btfs-cmds"
-	"github.com/TRON-US/go-btfs/core/commands"
+	shardpb "github.com/TRON-US/go-btfs/core/commands/store/upload/pb/shard"
+	"strconv"
+	"time"
+
 	"github.com/TRON-US/go-btfs/core/commands/cmdenv"
 	"github.com/TRON-US/go-btfs/core/commands/storage"
 	"github.com/TRON-US/go-btfs/core/commands/store/upload/ds"
@@ -13,14 +15,15 @@ import (
 	"github.com/TRON-US/go-btfs/core/escrow"
 	"github.com/TRON-US/go-btfs/core/guard"
 	"github.com/TRON-US/go-btfs/core/hub"
+
+	cmds "github.com/TRON-US/go-btfs-cmds"
 	coreiface "github.com/TRON-US/interface-go-btfs-core"
 	"github.com/TRON-US/interface-go-btfs-core/path"
+
 	"github.com/alecthomas/units"
 	"github.com/google/uuid"
 	cidlib "github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"strconv"
-	"time"
 )
 
 const (
@@ -69,14 +72,8 @@ Use status command to check for completion:
 	},
 	Subcommands: map[string]*cmds.Command{
 		//"init":              storageUploadInitCmd,
-		//"recvcontract":      storageUploadRecvContractCmd,
+		"recvcontract": StorageUploadRecvContractCmd,
 		//"status":            storageUploadStatusCmd,
-		"repair":            commands.StorageUploadRepairCmd,
-		"offline":           commands.StorageUploadOfflineCmd,
-		"getcontractbatch":  commands.StorageUploadGetContractBatchCmd,
-		"signcontractbatch": commands.StorageUploadSignContractBatchCmd,
-		"getunsigned":       commands.StorageUploadGetUnsignedCmd,
-		"sign":              commands.StorageUploadSignCmd,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("file-hash", true, false, "Hash of file to upload."),
@@ -153,7 +150,12 @@ Use status command to check for completion:
 			return err
 		}
 
-		ss, err := ds.GetSession(uuid.New().String(), n.Identity.String(), &ds.SessionInitParams{
+		ss, err := ds.GetSession("", n.Identity.String(), &ds.SessionInitParams{
+			Ctx:         req.Context,
+			Cfg:         cfg,
+			Ds:          n.Repo.Datastore(),
+			N:           n,
+			Api:         api,
 			RenterId:    n.Identity.String(),
 			FileHash:    fileHash,
 			ShardHashes: shardHashes,
@@ -169,7 +171,6 @@ Use status command to check for completion:
 					return err
 				}
 				totalPay := int64(float64(shardSize) / float64(units.GiB) * float64(price) * float64(storageLength))
-				fmt.Println("totalPay", totalPay)
 				hostPid, err := peer.IDB58Decode(host)
 				if err != nil {
 					return err
@@ -198,7 +199,7 @@ Use status command to check for completion:
 				halfSignedGuardContract, err := guard.SignedContractAndMarshal(guardContractMeta, nil, nil,
 					n.PrivateKey, true, false, n.Identity.Pretty(), n.Identity.Pretty())
 				if err != nil {
-					return fmt.Errorf("fail to sign guard contract and marshal: [%v] ", err)
+					return fmt.Errorf("fail to sign grd contract and marshal: [%v] ", err)
 				}
 				_, err = remote.P2PCall(req.Context, n, hostPid, "/storage/upload/init",
 					ss.Id,
@@ -211,12 +212,19 @@ Use status command to check for completion:
 					strconv.FormatInt(int64(shardSize), 10),
 					strconv.Itoa(i),
 				)
+				if err != nil {
+					return err
+				}
+				shard.Contract(&shardpb.Contracts{
+					HalfSignedEscrowContract: halfSignedEscrowContract,
+					HalfSignedGuardContract:  halfSignedGuardContract,
+				})
 				return err
 			}(i, h)
 		}
 
 		seRes := &UploadRes{
-			ID: "",
+			ID: ss.Id,
 		}
 		return res.Emit(seRes)
 	},

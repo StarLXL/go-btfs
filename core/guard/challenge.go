@@ -17,7 +17,7 @@ import (
 )
 
 // PrepShardChallengeQuestions checks and prepares an amount of random challenge questions
-// and returns the necessary guard proto struct
+// and returns the necessary grd proto struct
 func PrepShardChallengeQuestions(ctx context.Context, node *core.IpfsNode, api coreiface.CoreAPI,
 	fileHash cid.Cid, shardInfo *storage.Shard, shardHash cid.Cid,
 	hostID string, numQuestions int) (*guardpb.ShardChallengeQuestions, error) {
@@ -93,7 +93,7 @@ func PrepFileChallengeQuestions(ctx context.Context, n *core.IpfsNode, api corei
 }
 
 // PrepCustomFileChallengeQuestions is the inner version of PrepFileChallengeQuestions without
-// using a real guard file contracts, but rather custom parameters (mostly for manual testing)
+// using a real grd file contracts, but rather custom parameters (mostly for manual testing)
 func PrepCustomFileChallengeQuestions(ctx context.Context, n *core.IpfsNode, api coreiface.CoreAPI,
 	ss *storage.FileContracts, fileHash cid.Cid, shardHashes []cid.Cid,
 	hostIDs []string, questionsPerShard int) ([]*guardpb.ShardChallengeQuestions, error) {
@@ -134,7 +134,7 @@ func PrepCustomFileChallengeQuestions(ctx context.Context, n *core.IpfsNode, api
 	return questions, nil
 }
 
-// SendChallengeQuestions combines all shard questions in a file and sends to guard service
+// SendChallengeQuestions combines all shard questions in a file and sends to grd service
 func SendChallengeQuestions(ctx context.Context, cfg *config.Config, fileHash cid.Cid,
 	questions []*guardpb.ShardChallengeQuestions) error {
 	fileQuestions := &guardpb.FileChallengeQuestions{

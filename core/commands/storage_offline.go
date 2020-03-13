@@ -28,7 +28,7 @@ const (
 	BalanceOffSignOperation    = "balance"
 	PayChannelOffSignOperation = "paychannel"
 	PayRequestOffSignOperation = "payrequest"
-	GuardOffSignOperation      = "guard"
+	GuardOffSignOperation      = "grd"
 )
 
 func prepareSignedContractsForShardOffSign(param *paramsForPrepareContractsForShard,
@@ -477,7 +477,7 @@ func buildSignedGuardContractForShardOffSign(ctx context.Context, ss *storage.Fi
 		guard.SignedContractAndMarshal(shard.UnsignedGuardContract, shard.SignedBytes, nil, nil, true,
 			runMode == storage.RepairMode, renterPid, n.Identity.Pretty())
 	if err != nil {
-		log.Error("sign guard contract and maorshal failed ")
+		log.Error("sign grd contract and maorshal failed ")
 		return err
 	}
 

@@ -18,7 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var log = logging.Logger("core/guard")
+var log = logging.Logger("core/grd")
 
 func NewFileStatus(session *storage.FileContracts, contracts []*guardPb.Contract, configuration *config.Config) (*guardPb.FileStoreStatus, error) {
 	guardPid, escrowPid, err := getGuardAndEscrowPid(configuration)
@@ -148,7 +148,7 @@ func getGuardAndEscrowPid(configuration *config.Config) (peer.ID, peer.ID, error
 	}
 	guardPubKeys := configuration.Services.GuardPubKeys
 	if len(guardPubKeys) == 0 {
-		return "", "", fmt.Errorf("missing guard public key in config")
+		return "", "", fmt.Errorf("missing grd public key in config")
 	}
 	escrowPid, err := pidFromString(escrowPubKeys[0])
 	if err != nil {
@@ -157,7 +157,7 @@ func getGuardAndEscrowPid(configuration *config.Config) (peer.ID, peer.ID, error
 	}
 	guardPid, err := pidFromString(guardPubKeys[0])
 	if err != nil {
-		log.Error("parse guard config failed", guardPubKeys[1])
+		log.Error("parse grd config failed", guardPubKeys[1])
 		return "", "", err
 	}
 	return guardPid, escrowPid, err
@@ -219,7 +219,7 @@ func PrepAndUploadFileMeta(ctx context.Context, ss *storage.FileContracts,
 
 func PrepareFileMetaHelper(ss *storage.FileContracts,
 	payinRes *escrowPb.SignedPayinResult, configuration *config.Config) (*guardPb.FileStoreStatus, error) {
-	// get escrow sig, add them to guard
+	// get escrow sig, add them to grd
 	contracts := ss.GetGuardContracts()
 	sig := payinRes.EscrowSignature
 	for _, guardContract := range contracts {

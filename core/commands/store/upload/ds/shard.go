@@ -2,6 +2,7 @@ package ds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/TRON-US/go-btfs/core/commands/storage"
 	shardpb "github.com/TRON-US/go-btfs/core/commands/store/upload/pb/shard"
@@ -72,7 +73,7 @@ func GetShard(ctx context.Context, ds datastore.Datastore, peerId string, sessio
 }
 
 func (s *Shard) enterState(e *fsm.Event) {
-	log.Debug("shard", s.shardHash, "enter state", e.Dst)
+	log.Info("shard:", s.shardHash, ", enter state:", e.Dst)
 	switch e.Dst {
 	case "contract":
 		s.onContract(e.Args[0].(*shardpb.Contracts))
@@ -140,13 +141,38 @@ func (s *Shard) Metadata() (*shardpb.Metadata, error) {
 	return md, err
 }
 
-func (s *Shard) Congtracts() (*shardpb.Contracts, error) {
+func (s *Shard) Contracts() (*shardpb.Contracts, error) {
 	cg := &shardpb.Contracts{}
 	err := Get(s.ds, fmt.Sprintf(shardContractsKey, s.peerId, s.sessionId, s.shardHash), cg)
 	if err == datastore.ErrNotFound {
 		return cg, nil
 	}
 	return cg, err
+}
+
+func (s *Shard) SignedContracts() (*shardpb.SingedContracts, error) {
+	cg := &shardpb.SingedContracts{}
+	err := Get(s.ds, fmt.Sprintf(shardSignedContractsKey, s.peerId, s.sessionId, s.shardHash), cg)
+	if err == datastore.ErrNotFound {
+		return cg, nil
+	}
+	return cg, err
+}
+
+func (s *Shard) Contract(sc *shardpb.Contracts) {
+	s.fsm.Event("e-contract", sc)
+}
+
+func (s *Shard) Complete(escrowContractBytes []byte, guardContract *guardpb.Contract) {
+	s.fsm.Event("e-complete", escrowContractBytes, guardContract)
+}
+
+func (s *Shard) Error(err error) {
+	s.fsm.Event("e-error", err)
+}
+
+func (s *Shard) Timeout() {
+	s.fsm.Event("e-error", errors.New("timeout"))
 }
 
 func (s *Shard) SignedCongtracts() (*shardpb.SingedContracts, error) {

@@ -156,7 +156,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"rm":        RmCmd,
 	"storage":   store.StorageCmd,
 	"metadata":  MetadataCmd,
-	"guard":     GuardCmd,
+	"grd":     GuardCmd,
 	"wallet":    WalletCmd,
 	//"update":    ExternalBinary(),
 }

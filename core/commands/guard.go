@@ -23,9 +23,9 @@ const (
 
 var GuardCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with guard services from BTFS client.",
+		Tagline: "Interact with grd services from BTFS client.",
 		ShortDescription: `
-Connect with guard functions directly through this command.
+Connect with grd functions directly through this command.
 The subcommands here are mostly for debugging and testing purposes.`,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -35,10 +35,10 @@ The subcommands here are mostly for debugging and testing purposes.`,
 
 var guardTestCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Send tests to guard service endpoints from BTFS client.",
+		Tagline: "Send tests to grd service endpoints from BTFS client.",
 		ShortDescription: `
 This command contains subcommands that are typically for development purposes
-by letting the BTFS client test individual guard endpoints.`,
+by letting the BTFS client test individual grd endpoints.`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"send-challenges": guardSendChallengesCmd,
@@ -50,7 +50,7 @@ var guardSendChallengesCmd = &cmds.Command{
 		Tagline: "Send shard challenge questions from BTFS client.",
 		ShortDescription: `
 Sends all shard challenge questions under a reed-solomon encoded file
-to the guard service.`,
+to the grd service.`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("file-hash", true, false, "File hash to generate the questions from.").EnableStdin(),
@@ -107,7 +107,7 @@ to the guard service.`,
 		if err != nil {
 			return err
 		}
-		// check if we need to update config for a different guard url
+		// check if we need to update config for a different grd url
 		if gu, found := req.Options[guardUrlOptionName].(string); found {
 			cfg, err = cfg.Clone()
 			if err != nil {
@@ -115,7 +115,7 @@ to the guard service.`,
 			}
 			cfg.Services.GuardDomain = gu
 		}
-		// send to guard
+		// send to grd
 		return guard.SendChallengeQuestions(req.Context, cfg, rootHash, questions)
 	},
 }

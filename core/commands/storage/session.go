@@ -304,7 +304,7 @@ func init() {
 		State:   "guardSignProcess",
 		TimeOut: 5 * time.Minute}
 	StdSessionStateFlow[GuardStatus] = &FlowControl{
-		State:   "guard",
+		State:   "grd",
 		TimeOut: 15 * time.Minute}
 	StdSessionStateFlow[CompleteStatus] = &FlowControl{
 		State: "complete",
@@ -609,7 +609,7 @@ func (ss *FileContracts) IncrementContract(shard *Shard, signedEscrowContract []
 	ss.Lock()
 	defer ss.Unlock()
 
-	// expand guard contracts storage according to number of shards
+	// expand grd contracts storage according to number of shards
 	if shard.ShardIndex >= len(ss.GuardContracts) {
 		gcs := make([]*guardpb.Contract, shard.ShardIndex+1)
 		copy(gcs, ss.GuardContracts)
@@ -630,7 +630,7 @@ func (ss *FileContracts) IncrementAndCompareContract(last int, shard *Shard, sig
 	ss.Lock()
 	defer ss.Unlock()
 
-	// expand guard contracts storage according to number of shards
+	// expand grd contracts storage according to number of shards
 	if shard.ShardIndex >= len(ss.GuardContracts) {
 		gcs := make([]*guardpb.Contract, shard.ShardIndex+1)
 		copy(gcs, ss.GuardContracts)

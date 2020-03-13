@@ -35,10 +35,10 @@ var (
 	fsmEvents     = fsm.Events{
 		{Name: "e-submit", Src: []string{"init"}, Dst: "submit"},
 		{Name: "e-pay", Src: []string{"submit"}, Dst: "pay"},
-		{Name: "e-guard", Src: []string{"pay"}, Dst: "guard"},
-		{Name: "e-wait-upload", Src: []string{"guard"}, Dst: "wait-upload"},
+		{Name: "e-grd", Src: []string{"pay"}, Dst: "grd"},
+		{Name: "e-wait-upload", Src: []string{"grd"}, Dst: "wait-upload"},
 		{Name: "e-complete", Src: []string{"wait-upload"}, Dst: "complete"},
-		{Name: "e-error", Src: []string{"init", "submit", "pay", "guard", "wait-upload"}, Dst: "error"},
+		{Name: "e-error", Src: []string{"init", "submit", "pay", "grd", "wait-upload"}, Dst: "error"},
 	}
 	bo = func() *backoff.ExponentialBackOff {
 		bo := backoff.NewExponentialBackOff()
@@ -53,7 +53,7 @@ var (
 type Session struct {
 	Id     string
 	PeerId string
-	ctx    context.Context
+	Ctx    context.Context
 	cfg    *config.Config
 	fsm    *fsm.FSM
 	ds     datastore.Datastore
@@ -62,11 +62,11 @@ type Session struct {
 }
 
 type SessionInitParams struct {
-	ctx         context.Context
-	cfg         *config.Config
-	ds          datastore.Datastore
-	n           *core.IpfsNode
-	api         coreiface.CoreAPI
+	Ctx         context.Context
+	Cfg         *config.Config
+	Ds          datastore.Datastore
+	N           *core.IpfsNode
+	Api         coreiface.CoreAPI
 	RenterId    string
 	FileHash    string
 	ShardHashes []string
@@ -86,24 +86,20 @@ func GetSession(sessionId string, peerId string, params *SessionInitParams) (*Se
 		}
 		s.fsm.SetState(status.Status)
 	} else {
-		ctx := storage.NewGoContext(params.ctx)
+		ctx := storage.NewGoContext(params.Ctx)
 		s = &Session{
 			Id:     sessionId,
 			PeerId: peerId,
-			ctx:    ctx,
-			cfg:    params.cfg,
-			ds:     params.ds,
-			n:      params.n,
-			api:    params.api,
+			Ctx:    ctx,
+			cfg:    params.Cfg,
+			ds:     params.Ds,
+			n:      params.N,
+			api:    params.Api,
 		}
 		s.fsm = fsm.NewFSM("init", fsmEvents, fsm.Callbacks{
 			"enter_state": s.enterState,
 		})
-		s.init(&SessionInitParams{
-			RenterId:    params.RenterId,
-			FileHash:    params.FileHash,
-			ShardHashes: params.ShardHashes,
-		})
+		s.init(params)
 		sessionsInMem.Set(k, s)
 	}
 	return s, nil
@@ -130,7 +126,7 @@ func (f *Session) GetMetadata() (*sessionpb.Metadata, error) {
 }
 
 func (f *Session) enterState(e *fsm.Event) {
-	log.Debug("session", f.Id, "enter state", e.Dst)
+	log.Info("session", f.Id, "enter state", e.Dst)
 	msg := ""
 	switch e.Dst {
 	case "error":
@@ -148,7 +144,7 @@ func (f *Session) Pay() {
 }
 
 func (f *Session) Guard() {
-	f.fsm.Event("e-guard")
+	f.fsm.Event("e-grd")
 }
 
 func (f *Session) WaitUpload() {
@@ -200,7 +196,7 @@ func (s *Session) PrepareContractFromShard() ([]*escrowpb.SignedEscrowContract, 
 		return nil, 0, err
 	}
 	for _, hash := range md.ShardHashes {
-		shard, err := GetShard(s.ctx, s.ds, s.PeerId, s.Id, hash)
+		shard, err := GetShard(s.Ctx, s.ds, s.PeerId, s.Id, hash)
 		if err != nil {
 			return nil, 0, err
 		}

@@ -483,7 +483,7 @@ func (r *FSRepo) Close() error {
 func (r *FSRepo) Config() (*config.Config, error) {
 	// It is not necessary to hold the package lock since the repo is in an
 	// opened state. The package lock is _not_ meant to ensure that the repo is
-	// thread-safe. The package lock is only meant to guard against removal and
+	// thread-safe. The package lock is only meant to grd against removal and
 	// coordinate the lockfile. However, we provide thread-safety to keep
 	// things simple.
 	packageLock.Lock()
@@ -603,7 +603,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 
-	// Load private key to guard against it being overwritten.
+	// Load private key to grd against it being overwritten.
 	// NOTE: this is a temporary measure to secure this field until we move
 	// keys out of the config file.
 	pkval, err := common.MapGetKV(mapconf, config.PrivKeySelector)
