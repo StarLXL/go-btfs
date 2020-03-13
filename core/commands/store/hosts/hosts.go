@@ -20,7 +20,7 @@ const (
 var StorageHostsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Interact with information on hosts.",
-		ShortDescription: `Allows interaction with information on hosts. Host information is synchronized from btfs-hub and saved in local datastore.`,
+		ShortDescription: `Allows interaction with information on hosts. Host information is synchronized from btfs-hub and saved in local ds.`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"info": storageHostsInfoCmd,

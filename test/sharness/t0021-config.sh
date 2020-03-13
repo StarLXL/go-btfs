@@ -275,7 +275,7 @@ test_config_cmd() {
     test_expect_code 1 grep PrivKey show_config
   '
 
-  # won't work as it changes datastore definition, which makes btfs not launch
+  # won't work as it changes ds definition, which makes btfs not launch
   # without converting first
   # test_profile_apply_revert badgerds
 

@@ -1,8 +1,25 @@
 package upload
 
 import (
+	"context"
+	"fmt"
 	cmds "github.com/TRON-US/go-btfs-cmds"
 	"github.com/TRON-US/go-btfs/core/commands"
+	"github.com/TRON-US/go-btfs/core/commands/cmdenv"
+	"github.com/TRON-US/go-btfs/core/commands/storage"
+	"github.com/TRON-US/go-btfs/core/commands/store/upload/ds"
+	"github.com/TRON-US/go-btfs/core/commands/store/upload/hosts"
+	"github.com/TRON-US/go-btfs/core/corehttp/remote"
+	"github.com/TRON-US/go-btfs/core/escrow"
+	"github.com/TRON-US/go-btfs/core/guard"
+	"github.com/TRON-US/go-btfs/core/hub"
+	coreiface "github.com/TRON-US/interface-go-btfs-core"
+	"github.com/TRON-US/interface-go-btfs-core/path"
+	"github.com/alecthomas/units"
+	"github.com/google/uuid"
+	cidlib "github.com/ipfs/go-cid"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"strconv"
 	"time"
 )
 
@@ -76,6 +93,128 @@ Use status command to check for completion:
 	},
 	RunTimeout: 15 * time.Minute,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := cmdenv.GetConfig(env)
+		if err != nil {
+			return err
+		}
+
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		if len(req.Arguments) != 1 {
+			return fmt.Errorf("need one and only one root file hash")
+		}
+		fileHash := req.Arguments[0]
+		fileCid, err := cidlib.Parse(fileHash)
+		if err != nil {
+			return err
+		}
+
+		cids, fileSize, err := storage.CheckAndGetReedSolomonShardHashes(req.Context, n, api, fileCid)
+		if err != nil || len(cids) == 0 {
+			return fmt.Errorf("invalid hash: %s", err)
+		}
+		fmt.Println("fileSize", fileSize)
+
+		shardHashes := make([]string, 0)
+		for _, c := range cids {
+			shardHashes = append(shardHashes, c.String())
+		}
+
+		hp := hosts.GetHostProvider(req.Context, n, cfg.Experimental.HostsSyncMode, api)
+
+		ns, err := hub.GetSettings(req.Context, cfg.Services.HubDomain,
+			n.Identity.String(), n.Repo.Datastore())
+		if err != nil {
+			return err
+		}
+
+		storageLength := req.Options[storageLengthOptionName].(int)
+		if uint64(storageLength) < ns.StorageTimeMin {
+			return fmt.Errorf("invalid storage len. want: >= %d, got: %d",
+				ns.StorageTimeMin, storageLength)
+		}
+
+		price, found := req.Options[uploadPriceOptionName].(int64)
+		if !found {
+			price = int64(ns.StoragePriceAsk)
+		}
+
+		shardSize, err := getContractSizeFromCid(req.Context, cids[0], api)
+		if err != nil {
+			return err
+		}
+
+		ss, err := ds.GetSession(uuid.New().String(), n.Identity.String(), &ds.SessionInitParams{
+			RenterId:    n.Identity.String(),
+			FileHash:    fileHash,
+			ShardHashes: shardHashes,
+		})
+		if err != nil {
+			return err
+		}
+
+		for i, h := range shardHashes {
+			go func(i int, h string) error {
+				host, err := hp.NextValidHost()
+				if err != nil {
+					return err
+				}
+				totalPay := int64(float64(shardSize) / float64(units.GiB) * float64(price) * float64(storageLength))
+				fmt.Println("totalPay", totalPay)
+				hostPid, err := peer.IDB58Decode(host)
+				if err != nil {
+					return err
+				}
+				contract, err := escrow.NewContract(cfg, uuid.New().String(), n, hostPid, totalPay, false, 0, "")
+				if err != nil {
+					return err
+				}
+				halfSignedEscrowContract, err := escrow.SignContractAndMarshal(contract, nil, n.PrivateKey, true)
+				if err != nil {
+					return fmt.Errorf("sign escrow contract and maorshal failed: [%v] ", err)
+				}
+
+				shard, err := ds.GetShard(req.Context, n.Repo.Datastore(), n.Identity.String(), ss.Id, h)
+				if err != nil {
+					return err
+				}
+				md, err := shard.Metadata()
+				if err != nil {
+					return err
+				}
+				guardContractMeta, err := NewContract(md, h, cfg, n.Identity.String())
+				if err != nil {
+					return err
+				}
+				halfSignedGuardContract, err := guard.SignedContractAndMarshal(guardContractMeta, nil, nil,
+					n.PrivateKey, true, false, n.Identity.Pretty(), n.Identity.Pretty())
+				if err != nil {
+					return fmt.Errorf("fail to sign guard contract and marshal: [%v] ", err)
+				}
+				_, err = remote.P2PCall(req.Context, n, hostPid, "/storage/upload/init",
+					ss.Id,
+					fileHash,
+					h,
+					strconv.FormatInt(price, 10),
+					halfSignedEscrowContract,
+					halfSignedGuardContract,
+					strconv.FormatInt(int64(storageLength), 10),
+					strconv.FormatInt(int64(shardSize), 10),
+					strconv.Itoa(i),
+				)
+				return err
+			}(i, h)
+		}
+
 		seRes := &UploadRes{
 			ID: "",
 		}
@@ -86,4 +225,13 @@ Use status command to check for completion:
 
 type UploadRes struct {
 	ID string
+}
+
+func getContractSizeFromCid(ctx context.Context, hash cidlib.Cid, api coreiface.CoreAPI) (uint64, error) {
+	leafPath := path.IpfsPath(hash)
+	ipldNode, err := api.ResolveNode(ctx, leafPath)
+	if err != nil {
+		return 0, err
+	}
+	return ipldNode.Size()
 }

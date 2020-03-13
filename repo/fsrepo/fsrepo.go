@@ -403,7 +403,7 @@ func (r *FSRepo) openDatastore() error {
 		return fmt.Errorf("required Datastore.Spec entry missing from config file")
 	}
 	if r.config.Datastore.NoSync {
-		log.Warning("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/TRON-US/go-btfs/blob/master/docs/datastores.md#flatfs.")
+		log.Warning("NoSync is now deprecated in favor of ds specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/TRON-US/go-btfs/blob/master/docs/datastores.md#flatfs.")
 	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
@@ -417,7 +417,7 @@ func (r *FSRepo) openDatastore() error {
 		return err
 	}
 	if oldSpec != spec.String() {
-		return fmt.Errorf("datastore configuration of '%s' does not match what is on disk '%s'",
+		return fmt.Errorf("ds configuration of '%s' does not match what is on disk '%s'",
 			oldSpec, spec.String())
 	}
 
@@ -428,7 +428,7 @@ func (r *FSRepo) openDatastore() error {
 	r.ds = d
 
 	// Wrap it with metrics gathering
-	prefix := "ipfs.fsrepo.datastore"
+	prefix := "ipfs.fsrepo.ds"
 	r.ds = measure.New(prefix, r.ds)
 
 	return nil
@@ -668,7 +668,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	return r.setConfigUnsynced(conf) // TODO roll this into this method
 }
 
-// Datastore returns a repo-owned datastore. If FSRepo is Closed, return value
+// Datastore returns a repo-owned ds. If FSRepo is Closed, return value
 // is undefined.
 func (r *FSRepo) Datastore() repo.Datastore {
 	packageLock.Lock()

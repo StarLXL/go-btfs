@@ -266,7 +266,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
+	// sure we are permitted to access the resources (ds, etc.)
 	repo, err := fsrepo.Open(cctx.ConfigRoot)
 	switch err {
 	default:

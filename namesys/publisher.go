@@ -39,7 +39,7 @@ type IpnsPublisher struct {
 // NewIpnsPublisher constructs a publisher for the IPFS Routing name system.
 func NewIpnsPublisher(route routing.ValueStore, ds ds.Datastore) *IpnsPublisher {
 	if ds == nil {
-		panic("nil datastore")
+		panic("nil ds")
 	}
 	return &IpnsPublisher{routing: route, ds: ds}
 }
@@ -86,7 +86,7 @@ func (p *IpnsPublisher) ListPublished(ctx context.Context) (map[peer.ID]*pb.Ipns
 				continue
 			}
 			if !strings.HasPrefix(result.Key, ipnsPrefix) {
-				log.Errorf("datastore query for keys with prefix %s returned a key: %s", ipnsPrefix, result.Key)
+				log.Errorf("ds query for keys with prefix %s returned a key: %s", ipnsPrefix, result.Key)
 				continue
 			}
 			k := result.Key[len(ipnsPrefix):]

@@ -91,7 +91,7 @@ func testNamekeyPublisher(t *testing.T, keyType int, expectedErr error, expected
 		t.Fatal(err)
 	}
 
-	// Also check datastore for completeness
+	// Also check ds for completeness
 	key := dshelp.NewKeyFromBinary([]byte(namekey))
 	exists, err := dstore.Has(key)
 	if err != nil {
@@ -99,7 +99,7 @@ func testNamekeyPublisher(t *testing.T, keyType int, expectedErr error, expected
 	}
 
 	if exists != expectedExistence {
-		t.Fatal("Unexpected key existence in datastore")
+		t.Fatal("Unexpected key existence in ds")
 	}
 }
 

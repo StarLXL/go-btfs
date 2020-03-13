@@ -56,7 +56,7 @@ type Repo interface {
 	io.Closer
 }
 
-// Datastore is the interface required from a datastore to be
+// Datastore is the interface required from a ds to be
 // acceptable to FSRepo.
 type Datastore interface {
 	ds.Batching // must be thread-safe

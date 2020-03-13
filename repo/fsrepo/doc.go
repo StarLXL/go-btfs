@@ -12,8 +12,8 @@
 //   │   ├── daemon.lock          <------ protects daemon/ + signals its own address
 //   │   ├── ipfs-daemon.cpuprof
 //   │   └── ipfs-daemon.memprof
-//   ├── datastore/
-//   ├── repo.lock                <------ protects datastore/ and config
+//   ├── ds/
+//   ├── repo.lock                <------ protects ds/ and config
 //   └── version
 package fsrepo
 

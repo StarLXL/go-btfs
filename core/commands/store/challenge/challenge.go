@@ -23,7 +23,7 @@ btfs storage challenge response <contract-id> <file-hash> <shard-hash> <chunk-in
 	},
 	Subcommands: map[string]*cmds.Command{
 		"request":  storageChallengeRequestCmd,
-		"response": storageChallengeResponseCmd,
+		"response": StorageChallengeResponseCmd,
 	},
 }
 
@@ -36,7 +36,7 @@ still store a piece of file (usually a shard) as agreed in storage contract.`,
 	},
 	Arguments: append([]cmds.Argument{
 		cmds.StringArg("peer-id", true, false, "Host Peer ID to send challenge requests."),
-	}, storageChallengeResponseCmd.Arguments...), // append pass-through arguments
+	}, StorageChallengeResponseCmd.Arguments...), // append pass-through arguments
 	RunTimeout: 5 * time.Second, // TODO: consider slow networks?
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfg, err := cmdenv.GetConfig(env)
@@ -79,7 +79,7 @@ type StorageChallengeRes struct {
 	Answer string
 }
 
-var storageChallengeResponseCmd = &cmds.Command{
+var StorageChallengeResponseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Storage host responds to Proof-of-Storage requests.",
 		ShortDescription: `
@@ -132,7 +132,7 @@ the challenge request back to the caller.`,
 			return fmt.Errorf("contract id does not match, has [%s], needs [%s]", shardInfo.ContractID, ctID)
 		}
 		if !shardHash.Equals(shardInfo.ShardHash) {
-			return fmt.Errorf("datastore internal error: mismatched existing shard hash %s with %s",
+			return fmt.Errorf("ds internal error: mismatched existing shard hash %s with %s",
 				shardInfo.ShardHash.String(), shardHash.String())
 		}
 		chunkIndex, err := strconv.Atoi(req.Arguments[3])

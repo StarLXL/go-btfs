@@ -56,7 +56,7 @@ Get the value of the 'Datastore.Path' key:
 
 Set the value of the 'Datastore.Path' key:
 
-  $ btfs config Datastore.Path ~/.btfs/datastore
+  $ btfs config Datastore.Path ~/.btfs/ds
 `,
 	},
 	Subcommands: map[string]*cmds.Command{

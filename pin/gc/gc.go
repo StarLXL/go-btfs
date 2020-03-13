@@ -132,7 +132,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			}
 		}
 
-		defer log.EventBegin(ctx, "GC.datastore").Done()
+		defer log.EventBegin(ctx, "GC.ds").Done()
 		gds, ok := dstor.(dstore.GCDatastore)
 		if !ok {
 			return

@@ -425,7 +425,7 @@ func TestAddMetadataToFileWithoutMeta(t *testing.T) {
 				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: syncds.MutexWrap(datastore.NewMapDatastore()),
+		D: syncds.MutexWrap(ds.NewMapDatastore()),
 	}
 	// Build Ipfs node.
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
@@ -471,7 +471,7 @@ func TestUpdateMetadata(t *testing.T) {
 				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: syncds.MutexWrap(datastore.NewMapDatastore()),
+		D: syncds.MutexWrap(ds.NewMapDatastore()),
 	}
 	// Build Ipfs node.
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
@@ -567,7 +567,7 @@ func TestRemoveMetadata(t *testing.T) {
 				PeerID: testPeerID, // required by offline node
 			},
 		},
-		D: syncds.MutexWrap(datastore.NewMapDatastore()),
+		D: syncds.MutexWrap(ds.NewMapDatastore()),
 	}
 	// Build Ipfs node.
 	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})

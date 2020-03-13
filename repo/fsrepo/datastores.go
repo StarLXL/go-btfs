@@ -14,25 +14,25 @@ import (
 	"github.com/ipfs/go-ds-measure"
 )
 
-// ConfigFromMap creates a new datastore config from a map
+// ConfigFromMap creates a new ds config from a map
 type ConfigFromMap func(map[string]interface{}) (DatastoreConfig, error)
 
-// DatastoreConfig is an abstraction of a datastore config.  A "spec"
+// DatastoreConfig is an abstraction of a ds config.  A "spec"
 // is first converted to a DatastoreConfig and then Create() is called
-// to instantiate a new datastore
+// to instantiate a new ds
 type DatastoreConfig interface {
-	// DiskSpec returns a minimal configuration of the datastore
+	// DiskSpec returns a minimal configuration of the ds
 	// represting what is stored on disk.  Run time values are
 	// excluded.
 	DiskSpec() DiskSpec
 
-	// Create instantiate a new datastore from this config
+	// Create instantiate a new ds from this config
 	Create(path string) (repo.Datastore, error)
 }
 
 // DiskSpec is a minimal representation of the characteristic values of the
-// datastore. If two diskspecs are the same, the loader assumes that they refer
-// to exactly the same datastore. If they differ at all, it is assumed they are
+// ds. If two diskspecs are the same, the loader assumes that they refer
+// to exactly the same ds. If they differ at all, it is assumed they are
 // completely different datastores and a migration will be performed. Runtime
 // values such as cache options or concurrency options should not be added
 // here.
@@ -67,7 +67,7 @@ func init() {
 func AddDatastoreConfigHandler(name string, dsc ConfigFromMap) error {
 	_, ok := datastores[name]
 	if ok {
-		return fmt.Errorf("already have a datastore named %q", name)
+		return fmt.Errorf("already have a ds named %q", name)
 	}
 
 	datastores[name] = dsc
@@ -83,7 +83,7 @@ func AnyDatastoreConfig(params map[string]interface{}) (DatastoreConfig, error) 
 	}
 	fun, ok := datastores[which]
 	if !ok {
-		return nil, fmt.Errorf("unknown datastore type: %s", which)
+		return nil, fmt.Errorf("unknown ds type: %s", which)
 	}
 	return fun(params)
 }

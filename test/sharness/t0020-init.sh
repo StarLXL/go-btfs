@@ -62,7 +62,7 @@ test_expect_success "btfs init succeeds" '
 test_expect_success ".btfs/ has been created" '
   test -d ".btfs" &&
   test -f ".btfs/config" &&
-  test -d ".btfs/datastore" &&
+  test -d ".btfs/ds" &&
   test -d ".btfs/blocks" &&
   test ! -f ._check_writeable ||
   test_fsh ls -al .btfs

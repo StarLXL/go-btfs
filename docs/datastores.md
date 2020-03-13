@@ -59,11 +59,11 @@ The mountpoints are added as keys within the child datastore definitions.
 	"type": "mount",
 	"mounts": [
 		{
-			// Insert other datastore definition here, but add the following key:
+			// Insert other ds definition here, but add the following key:
 			"mountpoint": "/path/to/handle"
 		},
 		{
-			// Insert other datastore definition here, but add the following key:
+			// Insert other ds definition here, but add the following key:
 			"mountpoint": "/path/to/handle"
 		},
 	]
@@ -76,7 +76,7 @@ This datastore is a wrapper that adds metrics tracking to any datastore.
 ```json
 {
 	"type": "measure",
-	"prefix": "sometag.datastore",
+	"prefix": "sometag.ds",
 	"child": { datastore being wrapped }
 }
 ```

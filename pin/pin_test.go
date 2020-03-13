@@ -61,7 +61,7 @@ func TestPinnerBasic(t *testing.T) {
 
 	dserv := mdag.NewDAGService(bserv)
 
-	// TODO does pinner need to share datastore with blockservice?
+	// TODO does pinner need to share ds with blockservice?
 	p := NewPinner(dstore, dserv, dserv)
 
 	a, ak := randNode()
@@ -187,7 +187,7 @@ func TestIsPinnedLookup(t *testing.T) {
 
 	dserv := mdag.NewDAGService(bserv)
 
-	// TODO does pinner need to share datastore with blockservice?
+	// TODO does pinner need to share ds with blockservice?
 	p := NewPinner(dstore, dserv, dserv)
 
 	aNodes := make([]*mdag.ProtoNode, aBranchLen)
@@ -289,7 +289,7 @@ func TestDuplicateSemantics(t *testing.T) {
 
 	dserv := mdag.NewDAGService(bserv)
 
-	// TODO does pinner need to share datastore with blockservice?
+	// TODO does pinner need to share ds with blockservice?
 	p := NewPinner(dstore, dserv, dserv)
 
 	a, _ := randNode()

@@ -69,7 +69,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Make an expired record and put it in the datastore
+	// Make an expired record and put it in the ds
 	h := path.FromString("/btfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour * -1)
 
@@ -111,7 +111,7 @@ func TestPrexistingRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Make a good record and put it in the datastore
+	// Make a good record and put it in the ds
 	h := path.FromString("/btfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
 	eol := time.Now().Add(time.Hour)
 	entry, err := ipns.Create(privk, []byte(h), 0, eol)

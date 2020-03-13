@@ -141,7 +141,7 @@ var repoStatCmd = &cmds.Command{
 stored objects. It outputs:
 
 RepoSize        int Size in bytes that the repo is currently taking.
-StorageMax      string Maximum datastore size (from configuration)
+StorageMax      string Maximum ds size (from configuration)
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
 Version         string The repo version.

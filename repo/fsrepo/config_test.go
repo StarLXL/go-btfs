@@ -24,11 +24,11 @@ var defaultConfig = []byte(`{
         {
           "child": {
             "compression": "none",
-            "path": "datastore",
+            "path": "ds",
             "type": "levelds"
           },
           "mountpoint": "/",
-          "prefix": "leveldb.datastore",
+          "prefix": "leveldb.ds",
           "type": "measure"
         },
         {
@@ -39,7 +39,7 @@ var defaultConfig = []byte(`{
             "type": "flatfs"
           },
           "mountpoint": "/blocks",
-          "prefix": "flatfs.datastore",
+          "prefix": "flatfs.ds",
           "type": "measure"
         }
       ],
@@ -51,7 +51,7 @@ var defaultConfig = []byte(`{
 
 var leveldbConfig = []byte(`{
             "compression": "none",
-            "path": "datastore",
+            "path": "ds",
             "type": "levelds"
 }`)
 
@@ -70,7 +70,7 @@ var measureConfig = []byte(`{
             "type": "flatfs"
           },
           "mountpoint": "/blocks",
-          "prefix": "flatfs.datastore",
+          "prefix": "flatfs.ds",
           "type": "measure"
 }`)
 
@@ -89,7 +89,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := ioutil.TempDir("", "ipfs-ds-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := `{"mounts":[{"mountpoint":"/blocks","path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"},{"mountpoint":"/","path":"datastore","type":"levelds"}],"type":"mount"}`
+	expected := `{"mounts":[{"mountpoint":"/blocks","path":"blocks","shardFunc":"/repo/flatfs/shard/v1/next-to-last/2","type":"flatfs"},{"mountpoint":"/","path":"ds","type":"levelds"}],"type":"mount"}`
 	if dsc.DiskSpec().String() != expected {
 		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
@@ -127,7 +127,7 @@ func TestLevelDbConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := ioutil.TempDir("", "ipfs-ds-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestLevelDbConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := `{"path":"datastore","type":"levelds"}`
+	expected := `{"path":"ds","type":"levelds"}`
 	if dsc.DiskSpec().String() != expected {
 		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
 	}
@@ -155,7 +155,7 @@ func TestLevelDbConfig(t *testing.T) {
 	}
 
 	if typ := reflect.TypeOf(ds).String(); typ != "*leveldb.Datastore" {
-		t.Errorf("expected '*leveldb.datastore' got '%s'", typ)
+		t.Errorf("expected '*leveldb.ds' got '%s'", typ)
 	}
 }
 
@@ -165,7 +165,7 @@ func TestFlatfsConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := ioutil.TempDir("", "ipfs-ds-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestMeasureConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := ioutil.TempDir("", "ipfs-ds-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}

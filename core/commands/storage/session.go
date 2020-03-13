@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	// prefixes for datastore persistency keys
+	// prefixes for ds persistency keys
 	HostStoragePrefix   = "/host-storage/"
 	RenterStoragePrefix = "/renter-storage/"
-	// secondary path segments after prefix for datastore persistency keys
+	// secondary path segments after prefix for ds persistency keys
 	FileContractsStoreSeg = "file-contracts/"
 	ShardsStoreSeg        = "shards/"
 )
@@ -393,7 +393,7 @@ func NewSessionID() (string, error) {
 	return ssid.String(), nil
 }
 
-// GetFileMetaFromDatastore retrieves persisted session/contract information from datastore
+// GetFileMetaFromDatastore retrieves persisted session/contract information from ds
 func GetFileMetaFromDatastore(node *core.IpfsNode, prefix, ssID string) (*FileContracts, error) {
 	rds := node.Repo.Datastore()
 	value, err := rds.Get(ds.NewKey(prefix + FileContractsStoreSeg + ssID))
@@ -409,7 +409,7 @@ func GetFileMetaFromDatastore(node *core.IpfsNode, prefix, ssID string) (*FileCo
 	return f, nil
 }
 
-// GetShardInfoFromDatastore retrieves persisted shard information from datastore
+// GetShardInfoFromDatastore retrieves persisted shard information from ds
 func GetShardInfoFromDatastore(node *core.IpfsNode, prefix, shardHash string) (*Shard, error) {
 	rds := node.Repo.Datastore()
 	if prefix == HostStoragePrefix {
@@ -431,7 +431,7 @@ func GetShardInfoFromDatastore(node *core.IpfsNode, prefix, shardHash string) (*
 	return s, nil
 }
 
-// PersistFileMetaToDatastore saves session/contract information into datastore
+// PersistFileMetaToDatastore saves session/contract information into ds
 func PersistFileMetaToDatastore(node *core.IpfsNode, prefix string, ssID string) error {
 	rds := node.Repo.Datastore()
 	ss, err := GlobalSession.GetSession(node, prefix, ssID)

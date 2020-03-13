@@ -145,7 +145,7 @@ type Pinner interface {
 	// be successful.
 	RemovePinWithMode(cid.Cid, Mode)
 
-	// Flush writes the pin state to the backing datastore
+	// Flush writes the pin state to the backing ds
 	Flush() error
 
 	// DirectKeys returns all directly pinned cids
@@ -213,7 +213,7 @@ type pinner struct {
 	dstore      ds.Datastore
 }
 
-// NewPinner creates a new pinner using the given datastore as a backend
+// NewPinner creates a new pinner using the given ds as a backend
 func NewPinner(dstore ds.Datastore, serv, internal ipld.DAGService) Pinner {
 
 	rcset := cid.NewSet()
@@ -512,7 +512,7 @@ func cidSetWithValues(cids []cid.Cid) *cid.Set {
 	return out
 }
 
-// LoadPinner loads a pinner and its keysets from the given datastore
+// LoadPinner loads a pinner and its keysets from the given ds
 func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error) {
 	p := new(pinner)
 
@@ -633,7 +633,7 @@ func (p *pinner) Update(ctx context.Context, from, to cid.Cid, unpin bool) error
 	return nil
 }
 
-// Flush encodes and writes pinner keysets to the datastore
+// Flush encodes and writes pinner keysets to the ds
 func (p *pinner) Flush() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
