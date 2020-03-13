@@ -133,12 +133,12 @@ Use status command to check for completion:
 		"init":              storageUploadInitCmd,
 		"recvcontract":      storageUploadRecvContractCmd,
 		"status":            storageUploadStatusCmd,
-		"repair":            storageUploadRepairCmd,
-		"offline":           storageUploadOfflineCmd,
-		"getcontractbatch":  storageUploadGetContractBatchCmd,
-		"signcontractbatch": storageUploadSignContractBatchCmd,
-		"getunsigned":       storageUploadGetUnsignedCmd,
-		"sign":              storageUploadSignCmd,
+		"repair":            StorageUploadRepairCmd,
+		"offline":           StorageUploadOfflineCmd,
+		"getcontractbatch":  StorageUploadGetContractBatchCmd,
+		"signcontractbatch": StorageUploadSignContractBatchCmd,
+		"getunsigned":       StorageUploadGetUnsignedCmd,
+		"sign":              StorageUploadSignCmd,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("file-hash", true, false, "Hash of file to upload."),
@@ -322,7 +322,7 @@ func parseRequest(param *paramsForOpenSession) error {
 	return nil
 }
 
-var storageUploadRepairCmd = &cmds.Command{
+var StorageUploadRepairCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Repair specific shards of a file.",
 		ShortDescription: `
@@ -380,7 +380,7 @@ This command repairs the given shards of a file.`,
 	Type: UploadRes{},
 }
 
-var storageUploadOfflineCmd = &cmds.Command{
+var StorageUploadOfflineCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Store files on BTFS network nodes through BTT payment via offline signing.",
 		ShortDescription: `

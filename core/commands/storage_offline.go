@@ -78,7 +78,7 @@ const (
 	Base64
 )
 
-var storageUploadGetContractBatchCmd = &cmds.Command{
+var StorageUploadGetContractBatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get all the contracts from the upload session	(From BTFS SDK application's perspective).",
 		ShortDescription: `
@@ -165,7 +165,7 @@ func MarshalAndStringifyForSign(message proto.Message) (string, error) {
 	return str, nil
 }
 
-var storageUploadSignContractBatchCmd = &cmds.Command{
+var StorageUploadSignContractBatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get the unsigned contracts from the upload session.",
 		ShortDescription: `
@@ -265,7 +265,7 @@ func verifyReceivedMessage(req *cmds.Request, ss *storage.FileContracts) error {
 	return nil
 }
 
-var storageUploadGetUnsignedCmd = &cmds.Command{
+var StorageUploadGetUnsignedCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get the input data for offline signing.",
 		ShortDescription: `
@@ -320,7 +320,7 @@ This command obtains the offline signing input data for from the upload session
 	Type: storage.GetUnsignedRes{},
 }
 
-var storageUploadSignCmd = &cmds.Command{
+var StorageUploadSignCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Return the signed data to the upload session.",
 		ShortDescription: `
