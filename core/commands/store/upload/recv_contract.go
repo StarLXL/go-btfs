@@ -39,10 +39,11 @@ var StorageUploadRecvContractCmd = &cmds.Command{
 		}
 		guardContract, err := guard.UnmarshalGuardContract(guardContractBytes)
 		if err != nil {
-			s.Error(err)
+			s.Contracted <- false
 			return err
 		}
-		s.Complete(escrowContractBytes, guardContract)
+		s.WaitUpload(escrowContractBytes, guardContract)
+		s.Contracted <- true
 		return nil
 	},
 }

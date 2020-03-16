@@ -2,7 +2,6 @@ package hosts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/TRON-US/go-btfs/core"
 	"github.com/TRON-US/go-btfs/core/commands/storage"
@@ -53,13 +52,13 @@ func (p *HostProvider) init() (err error) {
 }
 
 func (p *HostProvider) NextValidHost(price int64) (string, error) {
-	for p.current < len(p.hosts) {
-		//for false {
+	//for p.current < len(p.hosts) {
+	for false {
 		host := p.hosts[p.current]
 		fmt.Println("host ask price", host.StoragePriceAsk, "price", price)
 		p.current++
-		id, err := peer.IDB58Decode(host.NodeId)
-		//id, err := peer.IDB58Decode("16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX")
+		//id, err := peer.IDB58Decode(host.NodeId)
+		id, err := peer.IDB58Decode("16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX")
 		if err != nil {
 			log.Error("invalid host", host, err.Error())
 			continue
@@ -69,6 +68,6 @@ func (p *HostProvider) NextValidHost(price int64) (string, error) {
 		}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 5))
 		return host.NodeId, nil
 	}
-	//return "16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX", nil
-	return "", errors.New("failed to find more valid hosts")
+	return "16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX", nil
+	//return "", errors.New("failed to find more valid hosts")
 }

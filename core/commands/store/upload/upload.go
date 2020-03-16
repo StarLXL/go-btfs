@@ -187,87 +187,101 @@ Use status command to check for completion:
 		}
 
 		for i, h := range shardHashes {
-			go func(i int, h string) {
-				host, err := hp.NextValidHost(price)
-				if err != nil {
-					ss.Error(err)
-					return
+			shard, err := ds.GetShard(req.Context, n.Repo.Datastore(), n.Identity.String(), ss.Id, h)
+			if err != nil {
+				ss.Error(err)
+				return err
+			}
+			go func(i int, h string, shard *ds.Shard) {
+				go func() {
+					shard.Contracted <- false
+				}()
+				for true {
+					select {
+					case b := <-shard.Contracted:
+						if b {
+							fmt.Println("done...")
+							return
+						} else {
+							host, err := hp.NextValidHost(price)
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							totalPay := int64(float64(shardSize) / float64(units.GiB) * float64(price) * float64(storageLength))
+							if totalPay <= 0 {
+								totalPay = 1
+							}
+							md := &shardpb.Metadata{
+								Index:          int32(i),
+								SessionId:      ss.Id,
+								FileHash:       fileHash,
+								ShardFileSize:  int64(shardSize),
+								StorageLength:  int64(storageLength),
+								ContractId:     ss.Id,
+								Receiver:       host,
+								Price:          price,
+								TotalPay:       totalPay,
+								StartTime:      time.Now().UTC(),
+								ContractLength: time.Duration(storageLength*24) * time.Hour,
+							}
+							err = shard.Init(md)
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							hostPid, err := peer.IDB58Decode(host)
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							contract, err := escrow.NewContract(cfg, uuid.New().String(), n, hostPid, totalPay, false, 0, "")
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							halfSignedEscrowContract, err := escrow.SignContractAndMarshal(contract, nil, n.PrivateKey, true)
+							if err != nil {
+								log.Error(fmt.Errorf("sign escrow contract and maorshal failed: [%v] ", err))
+								shard.Contracted <- false
+								return
+							}
+							guardContractMeta, err := NewContract(md, h, cfg, n.Identity.String())
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							halfSignedGuardContract, err := guard.SignedContractAndMarshal(guardContractMeta, nil, nil,
+								n.PrivateKey, true, false, n.Identity.Pretty(), n.Identity.Pretty())
+							if err != nil {
+								log.Error(fmt.Errorf("fail to sign grd contract and marshal: [%v] ", err))
+								shard.Contracted <- false
+								return
+							}
+							_, err = remote.P2PCall(req.Context, n, hostPid, "/storage/upload/init",
+								ss.Id,
+								fileHash,
+								h,
+								strconv.FormatInt(price, 10),
+								halfSignedEscrowContract,
+								halfSignedGuardContract,
+								strconv.FormatInt(int64(storageLength), 10),
+								strconv.FormatInt(int64(shardSize), 10),
+								strconv.Itoa(i),
+							)
+							if err != nil {
+								shard.Contracted <- false
+								return
+							}
+							shard.Contract(&shardpb.Contracts{
+								HalfSignedEscrowContract: halfSignedEscrowContract,
+								HalfSignedGuardContract:  halfSignedGuardContract,
+							})
+							return
+						}
+					}
 				}
-				totalPay := int64(float64(shardSize) / float64(units.GiB) * float64(price) * float64(storageLength))
-				if totalPay <= 0 {
-					totalPay = 1
-				}
-				md := &shardpb.Metadata{
-					Index:          int32(i),
-					SessionId:      ss.Id,
-					FileHash:       fileHash,
-					ShardFileSize:  int64(shardSize),
-					StorageLength:  int64(storageLength),
-					ContractId:     ss.Id,
-					Receiver:       host,
-					Price:          price,
-					TotalPay:       totalPay,
-					StartTime:      time.Now().UTC(),
-					ContractLength: time.Duration(storageLength*24) * time.Hour,
-				}
-				shard, err := ds.GetShard(req.Context, n.Repo.Datastore(), n.Identity.String(), ss.Id, h)
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-				err = shard.Init(md)
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-
-				hostPid, err := peer.IDB58Decode(host)
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-				contract, err := escrow.NewContract(cfg, uuid.New().String(), n, hostPid, totalPay, false, 0, "")
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-				halfSignedEscrowContract, err := escrow.SignContractAndMarshal(contract, nil, n.PrivateKey, true)
-				if err != nil {
-					ss.Error(fmt.Errorf("sign escrow contract and maorshal failed: [%v] ", err))
-					return
-				}
-				guardContractMeta, err := NewContract(md, h, cfg, n.Identity.String())
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-				halfSignedGuardContract, err := guard.SignedContractAndMarshal(guardContractMeta, nil, nil,
-					n.PrivateKey, true, false, n.Identity.Pretty(), n.Identity.Pretty())
-				if err != nil {
-					ss.Error(fmt.Errorf("fail to sign grd contract and marshal: [%v] ", err))
-					return
-				}
-				_, err = remote.P2PCall(req.Context, n, hostPid, "/storage/upload/init",
-					ss.Id,
-					fileHash,
-					h,
-					strconv.FormatInt(price, 10),
-					halfSignedEscrowContract,
-					halfSignedGuardContract,
-					strconv.FormatInt(int64(storageLength), 10),
-					strconv.FormatInt(int64(shardSize), 10),
-					strconv.Itoa(i),
-				)
-				if err != nil {
-					ss.Error(err)
-					return
-				}
-				shard.Contract(&shardpb.Contracts{
-					HalfSignedEscrowContract: halfSignedEscrowContract,
-					HalfSignedGuardContract:  halfSignedGuardContract,
-				})
-				return
-			}(i, h)
+			}(i, h, shard)
 		}
 
 		go func(f *ds.Session, ctx context.Context, numShards int) {

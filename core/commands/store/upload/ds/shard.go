@@ -27,20 +27,21 @@ const (
 var (
 	shardFsmEvents = fsm.Events{
 		{Name: "e-contract", Src: []string{"init"}, Dst: "contract"},
-		{Name: "e-complete", Src: []string{"contract"}, Dst: "complete"},
-		{Name: "e-error", Src: []string{"init", "contract"}, Dst: "error"},
+		{Name: "e-wait-upload", Src: []string{"contract"}, Dst: "wait-upload"},
+		{Name: "e-complete", Src: []string{"wait-upload"}, Dst: "complete"},
 	}
 	shardsInMem = cmap.New()
 )
 
 type Shard struct {
-	ctx       context.Context
-	step      chan interface{}
-	fsm       *fsm.FSM
-	peerId    string
-	sessionId string
-	shardHash string
-	ds        datastore.Datastore
+	ctx        context.Context
+	step       chan interface{}
+	fsm        *fsm.FSM
+	peerId     string
+	sessionId  string
+	shardHash  string
+	ds         datastore.Datastore
+	Contracted chan bool
 }
 
 type ShardInitParams struct {
@@ -64,11 +65,12 @@ func GetShard(ctx context.Context, ds datastore.Datastore, peerId string, sessio
 	} else {
 		ctx := storage.NewGoContext(ctx)
 		s = &Shard{
-			ctx:       ctx,
-			ds:        ds,
-			peerId:    peerId,
-			sessionId: sessionId,
-			shardHash: shardHash,
+			ctx:        ctx,
+			ds:         ds,
+			peerId:     peerId,
+			sessionId:  sessionId,
+			shardHash:  shardHash,
+			Contracted: make(chan bool),
 		}
 		s.fsm = fsm.NewFSM("init",
 			shardFsmEvents,
@@ -103,8 +105,6 @@ func (s *Shard) enterState(e *fsm.Event) {
 		s.onWaitUpload(e.Args[0].([]byte), e.Args[1].(*guardpb.Contract))
 	case "complete":
 		s.onComplete()
-	case "error":
-		s.onError(e.Args[0].(error))
 	}
 }
 
@@ -145,13 +145,6 @@ func (s *Shard) onComplete() error {
 	return Save(s.ds, fmt.Sprintf(shardStatusKey, s.peerId, s.sessionId, s.shardHash), &shardpb.Status{
 		Status:  "complete",
 		Message: "",
-	})
-}
-
-func (s *Shard) onError(err error) {
-	Save(s.ds, fmt.Sprintf(shardStatusKey, s.peerId, s.sessionId, s.shardHash), &shardpb.Status{
-		Status:  "error",
-		Message: err.Error(),
 	})
 }
 
@@ -200,10 +193,6 @@ func (s *Shard) WaitUpload(escrowContractBytes []byte, guardContract *guardpb.Co
 
 func (s *Shard) Complete() {
 	s.fsm.Event("e-complete")
-}
-
-func (s *Shard) Error(err error) {
-	s.fsm.Event("e-error", err)
 }
 
 func (s *Shard) Timeout() {

@@ -233,7 +233,8 @@ func (f *Session) GetCompleteShardsNum() (int, int, error) {
 		if err != nil {
 			continue
 		}
-		if status.Status == "complete" {
+		//FIXME
+		if status.Status == "complete" || status.Status == "wait-upload"{
 			completeNum++
 		} else if status.Status == "error" {
 			errorNum++
