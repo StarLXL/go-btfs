@@ -35,10 +35,10 @@ var (
 	fsmEvents     = fsm.Events{
 		{Name: "e-submit", Src: []string{"init"}, Dst: "submit"},
 		{Name: "e-pay", Src: []string{"submit"}, Dst: "pay"},
-		{Name: "e-grd", Src: []string{"pay"}, Dst: "grd"},
-		{Name: "e-wait-upload", Src: []string{"grd"}, Dst: "wait-upload"},
+		{Name: "e-guard", Src: []string{"pay"}, Dst: "guard"},
+		{Name: "e-wait-upload", Src: []string{"guard"}, Dst: "wait-upload"},
 		{Name: "e-complete", Src: []string{"wait-upload"}, Dst: "complete"},
-		{Name: "e-error", Src: []string{"init", "submit", "pay", "grd", "wait-upload"}, Dst: "error"},
+		{Name: "e-error", Src: []string{"init", "submit", "pay", "guard", "wait-upload"}, Dst: "error"},
 	}
 	bo = func() *backoff.ExponentialBackOff {
 		bo := backoff.NewExponentialBackOff()
@@ -54,11 +54,11 @@ type Session struct {
 	Id     string
 	PeerId string
 	Ctx    context.Context
-	cfg    *config.Config
+	Cfg    *config.Config
 	fsm    *fsm.FSM
-	ds     datastore.Datastore
-	n      *core.IpfsNode
-	api    coreiface.CoreAPI
+	Ds     datastore.Datastore
+	N      *core.IpfsNode
+	Api    coreiface.CoreAPI
 }
 
 type SessionInitParams struct {
@@ -91,10 +91,10 @@ func GetSession(sessionId string, peerId string, params *SessionInitParams) (*Se
 			Id:     sessionId,
 			PeerId: peerId,
 			Ctx:    ctx,
-			cfg:    params.Cfg,
-			ds:     params.Ds,
-			n:      params.N,
-			api:    params.Api,
+			Cfg:    params.Cfg,
+			Ds:     params.Ds,
+			N:      params.N,
+			Api:    params.Api,
 		}
 		s.fsm = fsm.NewFSM("init", fsmEvents, fsm.Callbacks{
 			"enter_state": s.enterState,
@@ -108,7 +108,7 @@ func GetSession(sessionId string, peerId string, params *SessionInitParams) (*Se
 func (f *Session) GetStatus() (*sessionpb.Status, error) {
 	sk := fmt.Sprintf(session_status_key, f.PeerId, f.Id)
 	st := &sessionpb.Status{}
-	err := Get(f.ds, sk, st)
+	err := Get(f.Ds, sk, st)
 	if err == datastore.ErrNotFound {
 		return st, nil
 	}
@@ -118,7 +118,7 @@ func (f *Session) GetStatus() (*sessionpb.Status, error) {
 func (f *Session) GetMetadata() (*sessionpb.Metadata, error) {
 	mk := fmt.Sprintf(sessionMetadataKey, f.PeerId, f.Id)
 	md := &sessionpb.Metadata{}
-	err := Get(f.ds, mk, md)
+	err := Get(f.Ds, mk, md)
 	if err == datastore.ErrNotFound {
 		return md, nil
 	}
@@ -126,7 +126,7 @@ func (f *Session) GetMetadata() (*sessionpb.Metadata, error) {
 }
 
 func (f *Session) enterState(e *fsm.Event) {
-	log.Info("session", f.Id, "enter state", e.Dst)
+	log.Info("session:", f.Id, ",enter state:", e.Dst)
 	msg := ""
 	switch e.Dst {
 	case "error":
@@ -144,7 +144,7 @@ func (f *Session) Pay() {
 }
 
 func (f *Session) Guard() {
-	f.fsm.Event("e-grd")
+	f.fsm.Event("e-guard")
 }
 
 func (f *Session) WaitUpload() {
@@ -177,7 +177,7 @@ func (f *Session) init(params *SessionInitParams) error {
 		status,
 		metadata,
 	}
-	return Batch(f.ds, ks, vs)
+	return Batch(f.Ds, ks, vs)
 }
 
 func (f *Session) setStatus(s string, msg string) error {
@@ -185,7 +185,7 @@ func (f *Session) setStatus(s string, msg string) error {
 		Status:  s,
 		Message: msg,
 	}
-	return Save(f.ds, fmt.Sprintf(session_status_key, f.PeerId, f.Id), status)
+	return Save(f.Ds, fmt.Sprintf(session_status_key, f.PeerId, f.Id), status)
 }
 
 func (s *Session) PrepareContractFromShard() ([]*escrowpb.SignedEscrowContract, int64, error) {
@@ -196,7 +196,7 @@ func (s *Session) PrepareContractFromShard() ([]*escrowpb.SignedEscrowContract, 
 		return nil, 0, err
 	}
 	for _, hash := range md.ShardHashes {
-		shard, err := GetShard(s.Ctx, s.ds, s.PeerId, s.Id, hash)
+		shard, err := GetShard(s.Ctx, s.Ds, s.PeerId, s.Id, hash)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -225,7 +225,7 @@ func (f *Session) GetCompleteShardsNum() (int, int, error) {
 		return 0, 0, err
 	}
 	for _, h := range md.ShardHashes {
-		shard, err := GetShard(f.Ctx, f.ds, f.PeerId, f.Id, h)
+		shard, err := GetShard(f.Ctx, f.Ds, f.PeerId, f.Id, h)
 		if err != nil {
 			continue
 		}

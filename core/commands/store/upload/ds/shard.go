@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/TRON-US/go-btfs/core"
 	"github.com/TRON-US/go-btfs/core/commands/storage"
 	shardpb "github.com/TRON-US/go-btfs/core/commands/store/upload/pb/shard"
 	"github.com/ipfs/go-datastore"
@@ -26,7 +27,7 @@ const (
 var (
 	shardFsmEvents = fsm.Events{
 		{Name: "e-contract", Src: []string{"init"}, Dst: "contract"},
-		{Name: "e-complete", Src: []string{"init", "contract"}, Dst: "complete"},
+		{Name: "e-complete", Src: []string{"contract"}, Dst: "complete"},
 		{Name: "e-error", Src: []string{"init", "contract"}, Dst: "error"},
 	}
 	shardsInMem = cmap.New()
@@ -40,6 +41,13 @@ type Shard struct {
 	sessionId string
 	shardHash string
 	ds        datastore.Datastore
+}
+
+type ShardInitParams struct {
+	n                        *core.IpfsNode
+	md                       *shardpb.Metadata
+	halfSignedEscrowContract []byte
+	halfSignGuardContract    []byte
 }
 
 func GetShard(ctx context.Context, ds datastore.Datastore, peerId string, sessionId string,
@@ -72,13 +80,29 @@ func GetShard(ctx context.Context, ds datastore.Datastore, peerId string, sessio
 	return s, nil
 }
 
+func (s *Shard) Init(md *shardpb.Metadata) error {
+	ks := []string{
+		fmt.Sprintf(shardStatusKey, s.peerId, s.sessionId, s.shardHash),
+		fmt.Sprintf(shardMetadataKey, s.peerId, s.sessionId, s.shardHash),
+	}
+	vs := []proto.Message{
+		&shardpb.Status{
+			Status:  "init",
+			Message: "",
+		}, md,
+	}
+	return Batch(s.ds, ks, vs)
+}
+
 func (s *Shard) enterState(e *fsm.Event) {
 	log.Info("shard:", s.shardHash, ", enter state:", e.Dst)
 	switch e.Dst {
 	case "contract":
 		s.onContract(e.Args[0].(*shardpb.Contracts))
+	case "wait-upload":
+		s.onWaitUpload(e.Args[0].([]byte), e.Args[1].(*guardpb.Contract))
 	case "complete":
-		s.onComplete(e.Args[0].([]byte), e.Args[1].(*guardpb.Contract))
+		s.onComplete()
 	case "error":
 		s.onError(e.Args[0].(error))
 	}
@@ -98,9 +122,9 @@ func (s *Shard) onContract(sc *shardpb.Contracts) error {
 	return Batch(s.ds, ks, vs)
 }
 
-func (s *Shard) onComplete(signedEscrowContractBytes []byte, gc *guardpb.Contract) error {
+func (s *Shard) onWaitUpload(signedEscrowContractBytes []byte, gc *guardpb.Contract) error {
 	status := &shardpb.Status{
-		Status:  "complete",
+		Status:  "wait-upload",
 		Message: "",
 	}
 	ks := []string{
@@ -115,6 +139,13 @@ func (s *Shard) onComplete(signedEscrowContractBytes []byte, gc *guardpb.Contrac
 		},
 	}
 	return Batch(s.ds, ks, vs)
+}
+
+func (s *Shard) onComplete() error {
+	return Save(s.ds, fmt.Sprintf(shardStatusKey, s.peerId, s.sessionId, s.shardHash), &shardpb.Status{
+		Status:  "complete",
+		Message: "",
+	})
 }
 
 func (s *Shard) onError(err error) {
@@ -163,8 +194,12 @@ func (s *Shard) Contract(sc *shardpb.Contracts) {
 	s.fsm.Event("e-contract", sc)
 }
 
-func (s *Shard) Complete(escrowContractBytes []byte, guardContract *guardpb.Contract) {
-	s.fsm.Event("e-complete", escrowContractBytes, guardContract)
+func (s *Shard) WaitUpload(escrowContractBytes []byte, guardContract *guardpb.Contract) {
+	s.fsm.Event("e-wait-upload", escrowContractBytes, guardContract)
+}
+
+func (s *Shard) Complete() {
+	s.fsm.Event("e-complete")
 }
 
 func (s *Shard) Error(err error) {

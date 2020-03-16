@@ -2,11 +2,12 @@ package hosts
 
 import (
 	"context"
-
+	"errors"
+	"fmt"
 	"github.com/TRON-US/go-btfs/core"
 	"github.com/TRON-US/go-btfs/core/commands/storage"
-
 	coreiface "github.com/TRON-US/interface-go-btfs-core"
+	"github.com/cenkalti/backoff"
 	hubpb "github.com/tron-us/go-btfs-common/protos/hub"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -51,23 +52,23 @@ func (p *HostProvider) init() (err error) {
 	return nil
 }
 
-func (p *HostProvider) NextValidHost() (string, error) {
-	//for p.current < len(p.hosts) {
-	for false {
+func (p *HostProvider) NextValidHost(price int64) (string, error) {
+	for p.current < len(p.hosts) {
+		//for false {
 		host := p.hosts[p.current]
+		fmt.Println("host ask price", host.StoragePriceAsk, "price", price)
 		p.current++
-		//id, err := peer.IDB58Decode(host.NodeId)
-		id, err := peer.IDB58Decode("16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX")
+		id, err := peer.IDB58Decode(host.NodeId)
+		//id, err := peer.IDB58Decode("16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX")
 		if err != nil {
 			log.Error("invalid host", host, err.Error())
 			continue
 		}
-		if err := p.api.Swarm().Connect(p.ctx, peer.AddrInfo{ID: id}); err != nil {
-			log.Error("failed to connect to host", host.NodeId, err.Error())
-			continue
-		}
+		backoff.Retry(func() error {
+			return p.api.Swarm().Connect(p.ctx, peer.AddrInfo{ID: id})
+		}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 5))
 		return host.NodeId, nil
 	}
-	return "16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX", nil
-	//return "", errors.New("failed to find more valid hosts")
+	//return "16Uiu2HAmVGndWgJEG2ZXnhdRXbRXS7a1XGMuozdidw8kuwQ9wDKX", nil
+	return "", errors.New("failed to find more valid hosts")
 }
